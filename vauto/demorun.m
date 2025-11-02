@@ -45,7 +45,7 @@
 %       Research Institute, University of Iceland.
 
 function demorun(optimizer, varargin)
-   rand_init('ParkMillerPolar');
+   rand_init('BuiltIn', 42);
    if nargin > 1
      r = str2double(varargin{1});
      n = str2double(varargin{2});
@@ -105,7 +105,7 @@ function demov(llfun, code, optimizer, p, q, r, n, misspatt)
   nPar = nA + nB + nSig + nmu;
 
   % OBTAIN PARAMETER MATRICES TO CREATE SIMULATED TIME SERIES
-  rand_init(1);
+  rand_init('BuiltIn', 1);
   [Ag, Bg, Sigg] = testcase(p,q,r); % "g" for "generating"
   mug = 0.1*(1:r)';
 

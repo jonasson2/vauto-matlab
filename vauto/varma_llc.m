@@ -56,7 +56,7 @@ function [ll, ok, out3] = varma_llc(X, A, B, Sig, J_code)
   ll = 0; out3 = 0;
   PLU = vyw_factorize(A);
   vyw_ok = isempty(PLU) || isempty(PLU{1}) || PLU{1}(1)~=0;
-  ok = vyw_ok && is_stationary(A, Sig, PLU);
+  ok = vyw_ok && is_stationary(A, PLU);
   if ~ok, 
     if nargout<=1, error('Non-stationary model'); else return, end
   end

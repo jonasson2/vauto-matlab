@@ -74,7 +74,7 @@
 %   Kristján Jónasson, Dept. of Computer Science, University of Iceland, 2006.
 %   jonasson@hi.is.
 
-function [x, eps] = varma_sim(A, B, Sig, n, mu, M, x0)
+function [x, eps] = new_varma_sim(A, B, Sig, n, mu, M, x0)
   r = size(Sig, 1);
   if isempty(A), A = zeros(r,0); end
   if isempty(B), B = zeros(r,0); end  
@@ -97,13 +97,15 @@ function [x, eps] = varma_sim(A, B, Sig, n, mu, M, x0)
     error('Non-stationary model: X0 must be specified.'),
   end
   S = vyw_solve(A, PLU, G);
-  SS = S_build(S, A, G, h);
-  CC = CC_build(A, C, h);
-  %[R,pp] = chol(SS);
-  %if pp~=0, error('Non-stationary model: X0 must be specified.'), end
+  SS = S_build(S, A, G, h); % SS = cov(x, x)
+  CC = CC_build(A, C, h);  % CC = cov(x, eps) where x = [x1;...xh]
   EE = mat2cell(zeros(r*h,r*h), repmat(r,1,h), repmat(r,1,h));
   for i=1:h, EE{i,i} = Sig; end
-  EE = cell2mat(EE);
+  EE = cell2mat(EE);  % EE = cov(eps, eps)
+  if isempty(x0)
+    eps(I,:) = reshape(randnm(M*h, Sig)', r*h, M);
+    W
+  end
   if ~isempty(I)
     if isempty(x0) %  Start the sequence from scratch
       x(I,:) = randnm(M, SS)';
@@ -163,10 +165,3 @@ function x = randnm(n,Sig,mu)
   y = rand_norm(n, r);
   x = y*R + repmat(mu,n,1);
 end
-
-% Note about variable names:
-%   HERE         OTHER TEXTS OFTEN USE
-%   Sk           Gamma_k
-%   Ck           Gk^ or Ck^
-%   S            Sigma_x(h), Tau(S0...S{h-1})
-%   

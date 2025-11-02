@@ -57,7 +57,7 @@ function [A,B,Sig,varargout] = testcase(varargin)
         fmt = '%-2i  %-12s %2d %2d %2d   %6s\n';
         [A,B,Sig,name] = testcase(i);
         [r,p,q] = get_dimensions(A,B,Sig);
-        if is_stationary(A, Sig), stat = 'yes'; else, stat = 'no'; end
+        if is_stationary(A), stat = 'yes'; else, stat = 'no'; end
         fprintf(fmt, i, name, r, p, q, stat);
       end
       clear A B Sig name
@@ -75,7 +75,7 @@ function [A,B,Sig,varargout] = testcase(varargin)
       B = rand_unif(r,r*q)/(2*q*r);
       Sig = hilb(r) + 0.2*eye(r);
       %Sig = randspd(r, 0.1);
-      while ~is_stationary(A,Sig), A=A/2; end
+      while ~is_stationary(A ), A=A/2; end
     case {1,'tinyAR'}
       A = 0.5;
       B = [];
@@ -146,8 +146,8 @@ function [A,B,Sig,varargout] = testcase(varargin)
            0.5  2.0 0.5;
            0.0  0.5 1.0];
     case {12,'largeAR'}
-      r=7; p=5; rand_init(60000);
-      A = 1.8*rand_unif(r,r*p)/r/p;
+      r=7; p=5;
+      A = 1.8*simplerand(r,r*p)/r/p;
       Sig=hilb(r)+0.2*eye(r);
       B = [];
     case {'pivotfailure'} % create almost singular vyw equations
@@ -169,4 +169,22 @@ function [A,B,Sig,varargout] = testcase(varargin)
     [varargout{1:3}] = deal(p, q, r);end
   ascertain(isequal(Sig,Sig'));
   ascertain(min(eig(Sig))>0);
+end
+
+function A = simplerand(m, n, seed)
+  %SIMPLERAND  POSIX.1-2001 style RNG (matches the classic C rand)
+  %   A = SIMPLERAND(n, seed) returns n pseudo-random numbers in [0,1).
+  %
+  %   This follows the POSIX algorithm:
+  %     next = next * 1103515245 + 12345;
+  %     irand = (next / 65536) mod 32768;
+  %     x = irand / 32768.0;
+  A = zeros(m, n);
+  next = seed;
+  for i = 1:m*n
+    next = mod(next * 1103515245 + 12345, 2^31);  % emulate 32-bit overflow
+    irand = floor(next / 65536);
+    irand = mod(irand, 32768);
+    A(i) = irand / 32768.0;
+  end
 end

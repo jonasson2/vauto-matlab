@@ -68,7 +68,7 @@ function test_varma_sim(varargin)
     d = relabsdiff(mu, mud);
     if ~quiet
       fprintf('\nTESTCASE %s', name);
-      if is_stationary(A, Sig), fprintf(' (model is stationary)'); 
+      if is_stationary(A), fprintf(' (model is stationary)'); 
       else, fprintf(' *** WARNING--NONSTATIONARY MODEL--'); end
       fprintf(':\n');
       fprintf('  Difference between theoretical and data mean %.1f%%\n', d*100);

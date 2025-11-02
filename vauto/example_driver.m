@@ -55,7 +55,7 @@ function example_driver
   fprintf('\nd4 = '), fprintf(' %5.2f', d4), fprintf('\n\n')
   
   % SIMULATION
-  rand_init(1)
+  rand_init('BuiltIn', 1)
   X = varma_sim(A, B, Sig, 5, mu, 2);
   disp([['X1 = ';'     '] num2str(X(:,:,1),' %6.3f')])
   disp([['X2 = ';'     '] num2str(X(:,:,2),' %6.3f')])
