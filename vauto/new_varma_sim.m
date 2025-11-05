@@ -1,8 +1,8 @@
-% VARMA_SIM  Simulate an ARMA or a VARMA time series model
+% NEW_VARMA_SIM  Simulate an ARMA or a VARMA time series model
 % 
 %   ARMA MODELS:
-%     X = VARMA_SIM(A,B,sigma,n) with scalar sigma generates a zero-mean time
-%     series of length n using the ARMA(p,q) model:
+%     X = NEW_VARMA_SIM(A,B,sigma,n) with scalar sigma generates a zero-mean
+%     time series of length n using the ARMA(p,q) model:
 % 
 %              x(t) = A1·x(t-1) + ... + Ap·x(t-p) + y(t)                    (1a)
 %     where:
@@ -16,27 +16,27 @@
 %     so there is no need to throw away the first values to avoid spin-up
 %     effects. The model must be stationary. 
 % 
-%     X = VARMA_SIM(A,B,sigma,n,mu) returns a time series with mean mu using
+%     X = NEW_VARMA_SIM(A,B,sigma,n,mu) returns a time series with mean mu using
 %     y(t) as above, and x(t) given by:
 % 
 %             x(t) - mu = A1·(x(t-1) - mu) + ... + Ap·(x(t-p) - mu) + y(t)   (2)
 % 
 %     In this case x and eps are drawn from N([mu; 0], SCE).
 % 
-%     X = VARMA_SIM(A,B,sigma,n,mu,M) generates M sequences simultaneously and
-%     returns the i-th one in the i-th column of X. Use mu=[] to obtain
+%     X = NEW_VARMA_SIM(A,B,sigma,n,mu,M) generates M sequences simultaneously
+%     and returns the i-th one in the i-th column of X. Use mu=[] to obtain
 %     zero-mean.
 % 
-%     X = VARMA_SIM(A,B,sigma,n,mu,M,X0) sets x(1)...x(h) to X0(end-h+1:end) -
-%     mu and draws eps(1)...eps(h) from the conditional distribution of eps(1),
-%     ..., eps(h) given x(1),...,x(h). For this option the model need not be
-%     stationary.
+%     X = NEW_VARMA_SIM(A,B,sigma,n,mu,M,X0) sets x(1)...x(h) to X0(end-h+1:end)
+%     - mu and draws eps(1)...eps(h) from the conditional distribution of
+%     eps(1), ..., eps(h) given x(1),...,x(h). For this option the model need
+%     not be stationary.
 % 
-%     [X,EPS] = VARMA_SIM(...) returns also the shock series, eps(t), in the
+%     [X,EPS] = NEW_VARMA_SIM(...) returns also the shock series, eps(t), in the
 %     t-th row of EPS.
 % 
 %   VARMA MODELS:
-%     X = VARMA_SIM(A,B,Cov,n), where Cov is an r×r matrix uses a VARMA(p,q)
+%     X = NEW_VARMA_SIM(A,B,Cov,n), where Cov is an r×r matrix uses a VARMA(p,q)
 %     model given by (1), but now x(t) is r-dimensional, eps(t) is r-variate
 %     normal with mean 0 and covariance Cov, and Cov and the Ai's and Bi's are
 %     r×r matrices. A and B should contain A = [A1 A2...Ap] (an r × r·p matrix)
@@ -45,87 +45,103 @@
 %     free, the starting values x(1),...,x(h) and eps(1),...,eps(h) being drawn
 %     from the correct distribution. The model must be stationary.
 %  
-%     X = VARMA_SIM(...,mu) uses (2) for x(t) instead of (1a).
+%     X = NEW_VARMA_SIM(...,mu) uses (2) for x(t) instead of (1a).
 % 
-%     X = VARMA_SIM(...,mu,M) returns M sequences in an r×n×M multidimensional X
-%     (when r > 1) with the i-th sequence in X(1:r, 1:n, i). Use mu = [] to
-%     obtain zero-mean.
+%     X = NEW_VARMA_SIM(...,mu,M) returns M sequences in an r×n×M
+%     multidimensional X (when r > 1) with the i-th sequence in X(1:r, 1:n, i).
+%     Use mu = [] to obtain zero-mean.
 % 
-%     X = VARMA_SIM(...,mu,M,X0) initializes x(1),...,x(h) with the last h
+%     X = NEW_VARMA_SIM(...,mu,M,X0) initializes x(1),...,x(h) with the last h
 %     columns of X0 instead of drawing from N(mu,SS). The model need not be
 %     stationary.
 % 
-%     [X,EPS] = VARMA_SIM(...) returns also the shock series; the i-th eps(t) is
-%     returned in EPS(:, t, i).
+%     [X,EPS] = NEW_VARMA_SIM(...) returns also the shock series; the i-th
+%     eps(t) is returned in EPS(:, t, i).
 % 
-%   For both ARMA and VARMA, use VARMA_SIM(A,[],...) for a pure autoregressive 
-%   model, and VARMA_SIM([],B,...) for a pure moving average model.
+%   For both ARMA and VARMA, use NEW_VARMA_SIM(A,[],...) for a pure
+%   autoregressive model, and NEW_VARMA_SIM([],B,...) for a pure moving average
+%   model.
 % 
-%   The method used is described in [1] and [2].
+%   The method used is described in [3]. It is an improved version of varma_sim
+%   in the original Vauto package aka ACM TOMS Algorithm 878 as described in [1]
+%   and [2]. The primary difference is that in this new function the first h
+%   shocks (eps_t) are drawn first and afterwards the first h states (x_t) are
+%   drawn using the conditional distribution of x_t|eps_t, whereas the original
+%   version did the opposite (eps_t after x_t).
 %
-%   [1] K Jonasson and SE Ferrando 2006. Efficient likelihood evaluation for
-%       VARMA processes with missing values. Report VHI-01-2006, Engineering
-%       Research Institute, University of Iceland.
+%   [1] K Jonasson and SE Ferrando 2008. Evaluating exact VARMA likelihood and
+%       its gradient when data are incomplete. ACM Trans. Math. Softw. (TOMS),
+%       35(1)
 %
-%   [2] K Jonasson 2006. Matlab programs for complete and incomplete data exact
-%       VARMA likelihood and its gradient. Report VHI-02-2006, Engineering
-%       Research Institute, University of Iceland.
+%   [2] K Jonasson 2008. Algorithm 878: Exact VARMA likelihood and its gradient
+%       for complete and incomplete data with Matlab. ACM Trans. Math. Softw.
+%       (TOMS), 35(1)
 %
-%   Kristján Jónasson, Dept. of Computer Science, University of Iceland, 2006.
-%   jonasson@hi.is.
+%   [3] K Jonasson 2025. Burn-in free simulation of VARMA time series.
+%       Manuscript in preparation.
+%
+%   (C) Kristján Jónasson, Dept. of Computer Science, University of Iceland,
+%   2025. jonasson@hi.is.
 
 function [x, eps] = new_varma_sim(A, B, Sig, n, mu, M, x0)
   r = size(Sig, 1);
   if isempty(A), A = zeros(r,0); end
-  if isempty(B), B = zeros(r,0); end  
-  p = size(A, 2)/r;
-  q = size(B, 2)/r;
-  Aflp = reshape(flipdim(reshape(A,r,r,p), 3), r, r*p);  %  [Ap...A2 A1]
-  Bflp = reshape(flipdim(reshape(B,r,r,q), 3), r, r*q);  %  [Bq...B2 B1]
-  h = max(p,q);
+  if isempty(B), B = zeros(r,0); end
+  [r, p, q, h] = getdims(A, B, Sig);
+  Aflp = flipmat(A);
+  Bflp = flipmat(B);
   if n<h, error('Too short series'); end
   if nargin < 5 || isempty(mu), mu = zeros(r,1); else mu = mu(:); end
   if nargin < 6 || isempty(M), M=1; end
   if nargin < 7, x0 = []; end
-  I = 1:r*h;
   x = zeros(n*r,M);
   eps = zeros(n*r,M);
-  mup = repmat(mu,h,1);
-  [C, G] = find_CGW(A, B, Sig);
+  Psi = find_Psi(A, B);
+  G = find_G(A, Bflp, Psi, Sig);
   PLU = vyw_factorize(A);
-  if ~isempty(PLU) && ~isempty(PLU{1}) && PLU{1}(1) == 0,
-    error('Non-stationary model: X0 must be specified.'),
-  end
+  assert(isempty(PLU) || isempty(PLU{1}) || PLU{1}(1) ~= 0)  % vyw_factorize ok
   S = vyw_solve(A, PLU, G);
-  SS = S_build(S, A, G, h); % SS = cov(x, x)
-  CC = CC_build(A, C, h);  % CC = cov(x, eps) where x = [x1;...xh]
-  EE = mat2cell(zeros(r*h,r*h), repmat(r,1,h), repmat(r,1,h));
-  for i=1:h, EE{i,i} = Sig; end
-  EE = cell2mat(EE);  % EE = cov(eps, eps)
+  X = zeros(r*n, M);
   if isempty(x0)
-    eps(I,:) = reshape(randnm(M*h, Sig)', r*h, M);
-    W
-  end
-  if ~isempty(I)
-    if isempty(x0) %  Start the sequence from scratch
-      x(I,:) = randnm(M, SS)';
-    elseif ~isempty(I) %  Initialize the series with x0 (every generated series starts the same)
-      ascertain(length(x0)>=h);
-      if r == 1, x0 = x0(:)'; end
-      x(I,:) = repmat(reshape(x0(:,end-h+1:end),[],1) - mup, 1, M);
+    I = 1:r*h;
+    SS = S_build(S, A, G, h); % SS = cov(x, x)
+    Psi_hat = find_Psi_hat(Psi, Sig);
+    R = SS - Psi_hat*Psi_hat';
+    E = reshape(randnm(n*M, Sig)', [r*n, M]);
+    X(I,:) = Psi*E(I,:) + randnm(M, R)';
+  else  % x0 given
+    % Find covariances and variances
+    I = 1:r*k;
+    k = length(x0);
+    assert(h <= k && k <= n)
+    CC = find_C(A, B, Sig, k);
+    SS = S_build(S, A, G, k);
+
+    % Find e = E(eps{1:k}|x0)
+    X(I,:) = x0(:) - repmat(mu,k,1);
+    E = zeros(r*n, M);
+    e = CC'*LS'\(LS\X);
+
+    % Find R = Var(eps{1:k}|x0)
+    LS = chol(SS, 'lower');
+    CC = LS\CC;
+    R = -CC'*CC;
+    J = 1:r;
+    for j = 1:k
+      R(J,J) = R(J,J) + Sig;
+      J = J + r;
     end
-    eps(I,:) = randnm(M, EE - CC'*(SS\CC))' + CC'*(SS\x(I,:));
+    E(I,:) = e + randnm(M, R)';
+    E(k*r+1:end) = reshape(randnm((n-k)*M, Sig)', [], M);
   end
-  eps(r*h+1:end,:) = reshape(randnm((n-h)*M,Sig)', [], M); %  shocks
-  % eps = reshape(randnm(n*M,Sig)', [], M); %  for testing
-  Ip = r*(h-p)+1:r*h;
-  Iq = r*(h-q)+1:r*h;
-  I = r*h+1:r*h+r;
-  for t=h+1:n %  Generate the series
-    x(I,:) = eps(I,:) + Aflp*x(Ip,:) + Bflp*eps(Iq,:);
+  I = r*h + (1:r);
+  J = r*(h-p)+1 : r*h-1;
+  K = r*(h-q)+1 : r*h-1;
+  for t = h+1:n
+    X(I,:) = E(I,:) + Aflp*X(J,:) + Bflp*X(K,:);
     I = I+r;
-    Ip = Ip+r;
-    Iq = Iq+r;
+    J = J+r;
+    K = K+r;
   end
   if r==1 && M==1  %  one ARMA sequence:
     x = reshape(x,1,n) + mu;
@@ -139,29 +155,22 @@ function [x, eps] = new_varma_sim(A, B, Sig, n, mu, M, x0)
   end
 end
 
-function x = randnm(n,Sig,mu)
+function x = randnm(n, Sig)
   %  RANDNM  Multivariate normal random vectors
-  %    X = RANDNM(N,SIG,MU) generates N random vectors from an r-variate normal
-  %    distribution with mean MU and covariance matrix SIG. MU should be an
-  %    r-vector. X will be N×r. X = RANDNM(N,S) uses mean 0.
-  %
-  %    NOTE: The formula for del was found empirically to be approximately the
-  %    minimum necessary to ensure that Cholesky factorization of Sig+del*I
-  %    works. The while loop is to further ensure that.
-  r=size(Sig,1);
-  if nargin<3, mu=zeros(1,r); end
-  mu = mu(:)';
+  r = size(Sig, 1);
   [R,p] = chol(Sig);
-  if p~=0, %  Add delta to diagonal of Sig to handle postive semidefinite Sig
-    del = max(1,norm(diag(Sig),inf))*(3+r/50)*eps; %  eps is machine epsilon
-    kdel = 0;
-    while p~=0
-      Sig = Sig + del*eye(r);
-      kdel = kdel + 1;
-      [R,p] = chol(Sig);
-      ascertain(kdel<10);
-    end
+  assert(p==0);
+  x = rand_norm(n, r)*R;
+end
+
+function Psi_hat = find_Psi_hat(Psi, Sig)
+  LSig = chol(Sig, 'lower');
+  r = size(Sig, 1);
+  h = size(Psi, 1)/r;
+  I = 1:r;
+  Psi_hat = zeros(h, h);
+  for k = 1:h
+    Psi_hat(:,I) = Psi(:,I)*LSig;
+    I = I+r;
   end
-  y = rand_norm(n, r);
-  x = y*R + repmat(mu,n,1);
 end

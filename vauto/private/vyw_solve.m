@@ -20,6 +20,7 @@ function S = vyw_solve(A,PLU,Y)
   r = size(Y{1},1);
   nrhs = size(Y{1},3);
   g = cell(p-1,nrhs);
+  I = eye(r);
   % INITIALIZE g
   for i=1:p-1
     if i < nY

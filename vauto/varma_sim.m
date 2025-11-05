@@ -163,10 +163,3 @@ function x = randnm(n,Sig,mu)
   y = rand_norm(n, r);
   x = y*R + repmat(mu,n,1);
 end
-
-% Note about variable names:
-%   HERE         OTHER TEXTS OFTEN USE
-%   Sk           Gamma_k
-%   Ck           Gk^ or Ck^
-%   S            Sigma_x(h), Tau(S0...S{h-1})
-%   
