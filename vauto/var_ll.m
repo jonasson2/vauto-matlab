@@ -87,6 +87,9 @@ function [ll, ok, varargout] = var_ll(X, A, Sig, varargin)
   vyw_ok = isempty(PLU) || isempty(PLU{1}) || PLU{1}(1)~=0;
   ok = vyw_ok && is_stationary(A, PLU);
   if ~ok, if nargout<=1, error('Non-stationary model'); else return, end, end
+  [~, sig_ok] = chol(Sig);
+  ok = sig_ok == 0;
+  if ~ok, if nargout<=1, error('Non-positive definite Sig'); else return, end, end
   %
   if ~FNDGRAD || FINDRES % ONLY FUNCTION VALUE
     S              = vyw_solve           (A, PLU, {Sig});

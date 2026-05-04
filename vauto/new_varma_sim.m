@@ -83,84 +83,135 @@
 %   (C) Kristján Jónasson, Dept. of Computer Science, University of Iceland,
 %   2025. jonasson@hi.is.
 
-function [x, eps] = new_varma_sim(A, B, Sig, n, mu, M, x0)
+function [X, E, condR] = new_varma_sim(A, B, Sig, n, mu, M, x0)
   r = size(Sig, 1);
   if isempty(A), A = zeros(r,0); end
   if isempty(B), B = zeros(r,0); end
-  [r, p, q, h] = getdims(A, B, Sig);
+  [~, p, q, h] = getdims(A, B, Sig);
   Aflp = flipmat(A);
   Bflp = flipmat(B);
   if n<h, error('Too short series'); end
-  if nargin < 5 || isempty(mu), mu = zeros(r,1); else mu = mu(:); end
+  if nargin < 5 || isempty(mu)
+    mu = zeros(r,1); 
+  else
+    if isscalar(mu), mu = repmat(mu, r, 1); end
+    mu = mu(:); 
+  end
   if nargin < 6 || isempty(M), M=1; end
   if nargin < 7, x0 = []; end
-  x = zeros(n*r,M);
-  eps = zeros(n*r,M);
-  Psi = find_Psi(A, B);
-  G = find_G(A, Bflp, Psi, Sig);
+  if isempty(x0) && specrad(A) >= 1
+    error("Cannot run varma_sim with unspecified x0 and rho(A) ≥ 1");
+  end
+  [~, G] = find_CG(A, B, Sig);
   PLU = vyw_factorize(A);
   assert(isempty(PLU) || isempty(PLU{1}) || PLU{1}(1) ~= 0)  % vyw_factorize ok
   S = vyw_solve(A, PLU, G);
-  X = zeros(r*n, M);
-  if isempty(x0)
-    I = 1:r*h;
-    SS = S_build(S, A, G, h); % SS = cov(x, x)
+  mat2c(cell2mat(S), "S");
+
+  % Check size of provided start vector, set h to its size if ok
+  if ~isempty(x0)
+    nx0 = size(x0, 2);
+    x0 = x0(:);
+    assert(h <= nx0 && nx0 <= n)
+    h = nx0;
+  end
+
+  SS = S_build(S, A, G, h);
+  E = reshape(randnm(n*M, Sig, "T"), r*n, M);
+
+  % Build theoretical covariance of xt
+  if isempty(x0)  % Generate x{1:h}
+    % mat2c(E, "E1")
+    Psi = find_Psi(A, B);
     Psi_hat = find_Psi_hat(Psi, Sig);
+    % mat2c(Psi_hat);
     R = SS - Psi_hat*Psi_hat';
-    E = reshape(randnm(n*M, Sig)', [r*n, M]);
-    X(I,:) = Psi*E(I,:) + randnm(M, R)';
+    % mat2c(tril(R), "R");
+    e = Psi*E(1:r*h, :);
+    Wrk = randnm(M, R, "T");
+    % mat2c(Wrk);
+    X1 = e + Wrk;
+    h = h;
   else  % x0 given
-    % Find covariances and variances
-    I = 1:r*k;
-    k = length(x0);
-    assert(h <= k && k <= n)
-    CC = find_C(A, B, Sig, k);
-    SS = S_build(S, A, G, k);
-
-    % Find e = E(eps{1:k}|x0)
-    X(I,:) = x0(:) - repmat(mu,k,1);
-    E = zeros(r*n, M);
-    e = CC'*LS'\(LS\X);
-
-    % Find R = Var(eps{1:k}|x0)
-    LS = chol(SS, 'lower');
-    CC = LS\CC;
-    R = -CC'*CC;
+    SS = S_build(S, A, G, h);
+    C = find_C(A, B, Sig, h);
+    CC = CC_build(A, C, h);
+    mat2c(CC);
+    LS = chol(SS, 'lower'); % TODO: Check this
+    Chat = LS\CC;
+    mat2c(Chat);
+    x0bar = x0(:) - repmat(mu, h, 1);
+    e = Chat'*(LS\x0bar);
+    mat2c(e, "e");
+    R = -Chat'*Chat;
     J = 1:r;
-    for j = 1:k
+    for j = 1:h
       R(J,J) = R(J,J) + Sig;
       J = J + r;
     end
-    E(I,:) = e + randnm(M, R)';
-    E(k*r+1:end) = reshape(randnm((n-k)*M, Sig)', [], M);
+
+    % Draw eps{1:h} and fill x{1:h}
+    E(1:r*h, :) = e + randnm(M, R, "T");
+    mat2c(E, "E0");
+    X1 = repmat(x0bar,1,M);
   end
+  condR = cond(R);
+  condSig = cond(Sig);
+  rho = specrad(A);
+  % fprintf("cond(R) = %.2e, cond(Sig) = %.2e, rho = %.4f\n", condR, condSig, rho);
+  X2 = zeros(n*r - h*r, M);
+  X = [X1; X2];
+  mat2c(X, "X1");
+
+  % Generate x{h+1:n}
   I = r*h + (1:r);
-  J = r*(h-p)+1 : r*h-1;
-  K = r*(h-q)+1 : r*h-1;
+  J = r*(h-p)+1 : r*h;
+  K = r*(h-q)+1 : r*h;
   for t = h+1:n
-    X(I,:) = E(I,:) + Aflp*X(J,:) + Bflp*X(K,:);
+    X(I,:) = E(I,:) + Aflp*X(J,:) + Bflp*E(K,:);
     I = I+r;
     J = J+r;
     K = K+r;
   end
+  mat2c(X);
+
+  % Reshape as appropriate for ARMA or VARMA
   if r==1 && M==1  %  one ARMA sequence:
-    x = reshape(x,1,n) + mu;
-    eps = reshape(eps,1,n);
+    X = reshape(X,1,n) + mu;
+    E = reshape(E,1,n);
   elseif r==1      %  several ARMA sequences:
-    x = reshape(x,n,M) + mu;
-    eps = reshape(eps,n,M);
+    X = reshape(X,n,M) + mu;
+    E = reshape(E,n,M);
   else             %   one or more VARMA sequences in r×n×M array:
-    x = reshape(x,r,n,M) + repmat(mu,[1,n,M]);
-    eps = reshape(eps,r,n,M); 
+    X = reshape(X,r,n,M) + repmat(mu,[1,n,M]);
+    E = reshape(E,r,n,M); 
   end
 end
 
-function x = randnm(n, Sig)
-  %  RANDNM  Multivariate normal random vectors
+function x = randnm(n, Sig, transpose)
+  % Multivariate normal random vectors. In this new (2025) version the
+  % eigendecomposition of Sig = U·Lam·U' is used to find the linear
+  % transformation applied to the independent random variates when its Cholesky
+  % decompositions fails due to it being only postivesemidefinite. The former
+  % version added small numbers to its diagonal instead. See e.g. the R function
+  % MASS::mvrnorm. To have this happen use testcase{ 5, 6 or 11. Another new
+  % feature is the transpose parameter, to allow compatibility with C.
+  TRANSP = nargin > 2 && startsWith(transpose, {'t', 'T'});
   r = size(Sig, 1);
-  [R,p] = chol(Sig);
-  assert(p==0);
-  x = rand_norm(n, r)*R;
+  if n==0, x = zeros(0, r); return, end
+  [A,p] = chol(Sig, 'lower');
+  if p~=0  % Use eigendecomposition to obtain A
+    disp EIGEN
+    [V,d] = eig(Sig, 'vector');
+    A = V*diag(sqrt(max(d, 0)));
+  end
+  if TRANSP
+    y = rand_norm(r, n);
+    x = A*y;
+  else
+    y = rand_norm(n, r);
+    x = y*A';
+  end
 end
 
 function Psi_hat = find_Psi_hat(Psi, Sig)
@@ -168,7 +219,7 @@ function Psi_hat = find_Psi_hat(Psi, Sig)
   r = size(Sig, 1);
   h = size(Psi, 1)/r;
   I = 1:r;
-  Psi_hat = zeros(h, h);
+  Psi_hat = zeros(r*h, r*h);
   for k = 1:h
     Psi_hat(:,I) = Psi(:,I)*LSig;
     I = I+r;

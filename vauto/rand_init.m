@@ -1,3 +1,4 @@
+
 % RAND_INIT  Initialize random number generators
 %
 %   RAND_INIT('BuiltIn') sets both rand_unif and rand_norm to use the built-in
@@ -9,8 +10,12 @@
 %
 %   RAND_INIT(..., SEED) also sets the seed.
 
-function rand_init(rng, seed)
-  switch rng
+function rand_init(generator, seed)
+  if isnumeric(generator)
+    seed = generator;
+    generator = 'BuiltIn';
+  end
+  switch generator
     case 'BuiltIn'
       rand_norm('BuiltIn');
       rand_unif('BuiltIn');
@@ -24,6 +29,6 @@ function rand_init(rng, seed)
         rand_unif(); % spin_up one number
       end
     otherwise
-      error('Illegal rng')
+      error('Illegal random number generator')
   end
 end

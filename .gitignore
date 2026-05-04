@@ -1,8 +1,10 @@
 *.tgz
 *.zip
 *.asv
+*.mat
 *~
 #*#
 .DS_Store
+.Rhistory
 /historical/*/Doc/algorithm.pdf
 /historical/*/Doc/method.pdf

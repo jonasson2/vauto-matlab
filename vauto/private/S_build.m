@@ -25,13 +25,14 @@
 %  with Gj = 0 for j > q.
 
 function SS = S_build(S, A, G, n)
+  if isnumeric(G), G = makecell(G); end
   r = size(G{1},1);
   p = length(S) - 1;
   q = length(G) - 1;
   S = [S cell(1,n-p-1)];
   A = makecell(A);
   for j=p+1:n-1
-    if j <= q, S{j+1} = G{j+1}; else S{j+1} = zeros(r,r); end
+    if j <= q, S{j+1} = G{j+1}; else, S{j+1} = zeros(r,r); end
     for i=1:p
       S{j+1} = S{j+1} + A{i}*S{j+1-i};
     end

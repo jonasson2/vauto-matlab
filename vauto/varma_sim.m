@@ -75,16 +75,14 @@
 %   jonasson@hi.is.
 
 function [x, eps] = varma_sim(A, B, Sig, n, mu, M, x0)
-  r = size(Sig, 1);
+  [p, q, r] = get_dimensions(A, B, Sig);
   if isempty(A), A = zeros(r,0); end
   if isempty(B), B = zeros(r,0); end  
-  p = size(A, 2)/r;
-  q = size(B, 2)/r;
-  Aflp = reshape(flipdim(reshape(A,r,r,p), 3), r, r*p);  %  [Ap...A2 A1]
-  Bflp = reshape(flipdim(reshape(B,r,r,q), 3), r, r*q);  %  [Bq...B2 B1]
+  Aflp = flipmat(A);  % [Ap...A2 A1]
+  Bflp = flipmat(B);  % [Bq...B2 B1]
   h = max(p,q);
   if n<h, error('Too short series'); end
-  if nargin < 5 || isempty(mu), mu = zeros(r,1); else mu = mu(:); end
+  if nargin < 5 || isempty(mu), mu = zeros(r,1); else, mu = mu(:); end
   if nargin < 6 || isempty(M), M=1; end
   if nargin < 7, x0 = []; end
   I = 1:r*h;
@@ -93,7 +91,7 @@ function [x, eps] = varma_sim(A, B, Sig, n, mu, M, x0)
   mup = repmat(mu,h,1);
   [C, G] = find_CGW(A, B, Sig);
   PLU = vyw_factorize(A);
-  if ~isempty(PLU) && ~isempty(PLU{1}) && PLU{1}(1) == 0,
+  if ~isempty(PLU) && ~isempty(PLU{1}) && PLU{1}(1) == 0
     error('Non-stationary model: X0 must be specified.'),
   end
   S = vyw_solve(A, PLU, G);
@@ -150,7 +148,7 @@ function x = randnm(n,Sig,mu)
   if nargin<3, mu=zeros(1,r); end
   mu = mu(:)';
   [R,p] = chol(Sig);
-  if p~=0, %  Add delta to diagonal of Sig to handle postive semidefinite Sig
+  if p~=0  %  Add delta to diagonal of Sig to handle postive semidefinite Sig
     del = max(1,norm(diag(Sig),inf))*(3+r/50)*eps; %  eps is machine epsilon
     kdel = 0;
     while p~=0

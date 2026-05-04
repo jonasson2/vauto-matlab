@@ -18,7 +18,7 @@ function CC = CC_build(A, C, n)
   for i=1:n
     for j=1:n
       if 0<=i-j, CC{i,j} = C{i-j+1};
-      else       CC{i,j} = zeros(r,r); end
+      else,      CC{i,j} = zeros(r,r); end
     end
   end
   CC = cell2mat(CC);

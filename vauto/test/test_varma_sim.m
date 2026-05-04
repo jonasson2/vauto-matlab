@@ -8,13 +8,15 @@
 %   TEST_VARMA_SIM(N, n) tests only case N, sets the size of the test (length of
 %     series/number of series) to n, uses Park-Miller-Polar random number
 %     setting, and skips testing dimensions of results. This is suitable for
-%     comparison with a similar C program. If n is bigger than about 1000
+%     comparison with a similar C program. If n is bigger than about 5000
 %     the random number generation becomes very slow.
 %
 %   The routine CC_build is also checked.
 
 function test_varma_sim(varargin)
-  if nargin > 0
+  NEW = ~isempty(varargin) && isequal(varargin{end}, "new");
+  if NEW, varargin = varargin(1:end-1); end
+  if ~isempty(varargin)
     if isequal(lower(varargin{1}),'quiet'), tcase = 1:2:7; quiet = true;
     else
       tcase = varargin{1};
@@ -24,30 +26,37 @@ function test_varma_sim(varargin)
     quiet = false;
     tcase = 1:1:8;
   end
-  if nargin > 1
+  if length(varargin) > 1
     n = varargin{2}; n1 = n;
     M = n;           M1 = n;
     rand_init('ParkMillerPolar');
   else
-    n = 600000;
-    M = 600000;
-    n1 = 200;
+    n = 400000;
+    M = 400000;
+    n1 = 100;
     M1 = 1000;
   end
-  rand_init(1);
+  rand_init('BuiltIn', 42);
   dmax = 0;
-  fprintf('TESTING VARMA_SIM... ');
+  if NEW
+    fprintf('TESTING NEW VARMA_SIM');
+    sim = @new_varma_sim;
+  else
+    fprintf('TESTING VARMA_SIM...');
+    sim = @varma_sim;
+  end
+  if NEW, fprintf('NEW...'); else, fprintf('...'); end
   for i=tcase
     [A, B, Sig, p, q, r, name] = testcase(i);
     h = max(p,q);
     %
     % TEST DIMENSIONS OF RESULTS UNLESS TESTING A SINGLE CASE
-    if nargin <= 1
-      X1 = varma_sim(A,B,Sig,10);
-      X2 = varma_sim(A,B,Sig,10,[],1);
-      X3 = varma_sim(A,B,Sig,10,[],5);
-      [X4,eps4] = varma_sim(A,B,Sig,10);
-      [X5,eps5] = varma_sim(A,B,Sig,10,[],5);
+    if isempty(varargin)
+      X1 = sim(A,B,Sig,10);
+      X2 = sim(A,B,Sig,10,[],1);
+      X3 = sim(A,B,Sig,10,[],5);
+      [X4,eps4] = sim(A,B,Sig,10);
+      [X5,eps5] = sim(A,B,Sig,10,[],5);
       assertsize(X1,r,10);
       assertsize(X2,r,10);
       assertsize(X4,r,10); assertsize(eps4,r,10);
@@ -62,7 +71,7 @@ function test_varma_sim(varargin)
     %
     % TEST MEAN
     mu = (1:r)';
-    X = varma_sim(A, B, Sig, n1, mu, M1);
+    X = sim(A, B, Sig, n1, mu, M1);
     if r==1, X=reshape(X,1,n1,M1); end
     mud = mean(mean(X,3),2);
     d = relabsdiff(mu, mud);
@@ -76,7 +85,7 @@ function test_varma_sim(varargin)
     dmax = max(dmax, d);
     %
     % START FROM SCRATCH; COMPARE DATA COVARIANCE WITH THEORETICAL
-    X = varma_sim(A, B, Sig, n, [])';     % simulate a long single series
+    X = sim(A, B, Sig, n, [])';     % simulate a long single series
     SSd = cov([X(1:end-1,:) X(2:end,:)]); % data covariance, lag 0 and 1
     [C,G,~,S] = find_CGWS(A, B, Sig);
     SS = S_build(S, A, G, 2); % theoretical covariance
@@ -89,7 +98,7 @@ function test_varma_sim(varargin)
       for j=1:r, fprintf(1,'  %6.3f',SSd(j,:)); disp ' '; end
       fprintf('  Max relative difference: %.1f%%\n', d*100);
     end 
-    X = varma_sim(A, B, Sig, h+3, [], M); % simulate multiple short series
+    X = sim(A, B, Sig, h+3, [], M); % simulate multiple short series
     X = reshape(X,r*(h+3),M);
     SSd = cov(X');               % data covariance
     SS = S_build(S, A, G, h+3);  % theoretical covariance
@@ -102,7 +111,7 @@ function test_varma_sim(varargin)
     end
     % CHECK CC_BUILD ON A SERIES OF LENGTH 2*h; COMPARE CC WITH DATA COV(X,EPS)
     CC = CC_build(A, C, h);
-    [X,eps] = varma_sim(A, B, Sig, 2*h, [], M);
+    [X,eps] = sim(A, B, Sig, 2*h, [], M);
     if r==1, X=shiftdim(X,-1); end
     if r==1, eps=shiftdim(eps,-1); end
     X1 =reshape(X  (:,1:h,:),r*h,[]); X2 =reshape(X  (:,end-h+1:end,:),r*h,[]);
@@ -124,7 +133,7 @@ function test_varma_sim(varargin)
     %
     % TEST STARTING FROM GIVEN X'S
     X0 = 2+repmat((1:r)', 1, h);
-    X = varma_sim(A, B, Sig, h+2, mu, M, X0);          % simulated forecast
+    X = sim(A, B, Sig, h+2, mu, M, X0);          % simulated forecast
     if r==1, X=shiftdim(X,-1); end
     X1 = reshape(X(:,h+1,:),r,M);
     X2 = reshape(X(:,h+2,:),r,M);
@@ -140,7 +149,6 @@ function test_varma_sim(varargin)
     dmax = max([dmax,d1,d2,d3]);
   end
   fprintf('Max difference: %.1f%%\n', dmax*100);
-  if nargin > 1, rand_init('BuiltIn'); end
 end
 
 function [Ex1,Ex2,Vx1] = expX(A,B,C,X,mu,SS,Sig)

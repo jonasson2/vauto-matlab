@@ -33,12 +33,16 @@
 %   circle, which characterizes a stationary VARMA process.
 
 function [stat, argout] = is_stationary(A, argin)
-  if nargin == 2 && strcmp(argin, 'specrad')
-    r = size(A, 1);
-    p = length(A)/r;
-    k = r*(p-1);
-    Ac = [A; eye(k) zeros(k,r)];
-    rho = max(abs(eig(Ac)));
+  if nargin == 2 && (ischar(argin) || isstring(argin)) && strcmp(argin, 'specrad')
+    if isempty(A)
+      rho = 0;
+    else
+      r = size(A, 1);
+      p = length(A)/r;
+      k = r*(p-1);
+      Ac = [A; eye(k) zeros(k,r)];
+      rho = max(abs(eig(Ac)));
+    end
     stat = rho < 1;
     argout = rho;
   else
@@ -46,6 +50,7 @@ function [stat, argout] = is_stationary(A, argin)
     r = size(A,1);
     p = length(A)/r;
     if nargin==1, PLU = vyw_factorize(A); end
+    if nargin==2, PLU = argin; end
     if ~isempty(PLU) && ~isempty(PLU{1}) && PLU{1}(1) == 0
       stat=false;
       return

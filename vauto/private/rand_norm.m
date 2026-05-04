@@ -18,13 +18,13 @@
 %   Use RAND_INIT to set the state for RAND_NORM.
 
 function x = rand_norm(varargin)
-  persistent polar
+  persistent polar spare_norm
   if nargin > 0 && ischar(varargin{1}) % set generator or query
     switch varargin{1}
-      case 'Polar', polar = true;
-      case 'BuiltIn', polar = false;
+      case 'Polar', polar = true; spare_norm = NaN;
+      case 'BuiltIn', polar = false; spare_norm = NaN;
       case 'Query'
-        if isempty(~polar) || ~polar
+        if isempty(polar) || ~polar
           x = 'BuiltIn';
         else
           x = 'Polar';
@@ -34,38 +34,58 @@ function x = rand_norm(varargin)
     end
   elseif isempty(polar) || ~polar % built-in
     x = randn(varargin{:});
-  else % polar
-    if nargin == 0, varargin = {1,1}; end
-    if nargin == 1, varargin{2} = varargin{1}; end
-    n = prod([varargin{:}]);
-    x = zeros(n,1);
-    if n<=2
-      while true
-        uv = rand_unif(2,1);
-        u = uv(1)*2 - 1;
-        v = uv(2)*2 - 1;
-        s = u*u + v*v;
-        if s > 0 && s < 1, break, end
-      end
-      R = sqrt(-2*log(s)/s);
-      x(1) = u*R;
-      if n==2, x(2) = v*R;
-      end
-    else
-      k = 1;
-      while k <= n
-        uv = rand_unif(2,1);
-        u = uv(1)*2 - 1;
-        v = uv(2)*2 - 1;
-        s = u*u + v*v;
-        if s > 0 && s < 1
-          R = sqrt(-2*log(s)/s);
-          x(k) = u*R;
-          k = k+1;
-          if k <= n, x(k) = v*R; k = k+1; end
-        end
+else % polar
+  if nargin == 0, varargin = {1,1}; end
+  if nargin == 1, varargin{2} = varargin{1}; end
+  n = prod([varargin{:}]);
+  x = zeros(n,1);
+
+  % initialise spare_norm the first time
+  if isempty(spare_norm)
+    spare_norm = NaN;
+  end
+
+  k = 1;
+
+  % use cached spare if available
+  if ~isnan(spare_norm)
+    x(k) = spare_norm;
+    spare_norm = NaN;
+    k = k+1;
+  end
+
+  % fill as many pairs as possible
+  while k+1 <= n
+    while true
+      uv = rand_unif(2,1);
+      u = uv(1)*2 - 1;
+      v = uv(2)*2 - 1;
+      s = u*u + v*v;
+      if s > 0 && s < 1
+        break
       end
     end
-    x = reshape(x, varargin{:});
+    R = sqrt(-2*log(s)/s);
+    x(k)   = u*R;
+    x(k+1) = v*R;
+    k = k+2;
   end
+
+  % if one value left, generate a pair and cache the spare
+  if k <= n
+    while true
+      uv = rand_unif(2,1);
+      u = uv(1)*2 - 1;
+      v = uv(2)*2 - 1;
+      s = u*u + v*v;
+      if s > 0 && s < 1
+        break
+      end
+    end
+    R = sqrt(-2*log(s)/s);
+    x(k) = u*R;
+    spare_norm = v*R;
+  end
+
+  x = reshape(x, varargin{:});  end
 end

@@ -70,6 +70,9 @@ function [ll, ok, varargout] = varma_llm(X, A, B, Sig, mu, miss, J_code)
   vyw_ok = isempty(PLU) || isempty(PLU{1}) || PLU{1}(1)~=0;
   ok = vyw_ok && is_stationary(A, PLU);
   if ~ok, if nargout<=1, error('Non-stationary model'); else return, end, end
+  [~, sig_ok] = chol(Sig);
+  ok = sig_ok == 0;
+  if ~ok, if nargout<=1, error('Non-positive definite Sig'); else return, end, end
   %
   %fprintf('%s%d,%d,%d,%d,%d,%d\n','CHNGVAR,DIFF,FILLMISS,MEAN,MISS,RES=',...
   %    CHNGVAR,nargout>2 && ~FINDRES,nargout>=4,MEAN,km(n+1)>0,FINDRES)

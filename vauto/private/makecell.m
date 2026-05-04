@@ -1,7 +1,8 @@
 % MAKECELL  Change to cell array
 %
 %   C = MAKECELL(C) changes C from [C1 C2...Cm] to {C1 C2...Cm} where each Ci is
-%   square. If C is empty the empty cell array, {}, is returned.
+%   square. If C is empty the empty cell array, {}, is returned. The function
+%   also works if each Ci is r by r by n.
 
 function Cout = makecell(C)
   if isempty(C), Cout = {}; return, end
@@ -9,6 +10,6 @@ function Cout = makecell(C)
   m = size(C,2)/r;
   Cout = cell(1, m);
   for i=1:m
-    Cout{i} = C(:, (i-1)*r+1:i*r);
+    Cout{i} = C(:, (i-1)*r+1:i*r, :);
   end
 end

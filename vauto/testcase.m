@@ -17,7 +17,11 @@
 %   name{i} returns the name of the i-th case.
 %
 %   [A,B,Sig] = TESTCASE(p,q,r) returns an unnamed testcase with dimensions
-%   p,q,r.
+%   p,q,r using rand_unif with the currently selected generator and seed (see
+%   rand_init)
+%
+%   [A,B,Sig] = TESTCASE(p,q,r,seed) returns an unnamed testcase using rand_unif
+%   with the Park-Miller rng and the specified seed (for reproducibility).
 
 function [A,B,Sig,varargout] = testcase(varargin)
   name = '';
@@ -45,20 +49,25 @@ function [A,B,Sig,varargout] = testcase(varargin)
     %'pivotfailure'
     };
   N = length(testcases);
+  if isstring(type), type = char(type); end
   if ~ischar(type), name = testcases{type}; 
   elseif ~isequal(type,'all'), name=type; end
+  A33 = [
+    0.15 0.10 0.05  0.11 0.14 0.17  0.01 0.04 0.06;
+    0.16 0.11 0.06  0.12 0.15 0.18  0.02 0.05 0.08;
+    0.17 0.12 0.07  0.13 0.16 0.19  0.03 0.06 0.09];
   switch type
     case 'number'
       A = N; % count of named cases
       return
     case 'summary'
-      fprintf('No. Name          p  q  r  Stationary?\n');
+      fprintf('No. Name          p  q  r  spec.rad\n');
       for i = 1:N
-        fmt = '%-2i  %-12s %2d %2d %2d   %6s\n';
+        fmt = '%-2i  %-12s %2d %2d %2d   %6.4f\n';
         [A,B,Sig,name] = testcase(i);
         [r,p,q] = get_dimensions(A,B,Sig);
-        if is_stationary(A), stat = 'yes'; else, stat = 'no'; end
-        fprintf(fmt, i, name, r, p, q, stat);
+        rho = specrad(A);
+        fprintf(fmt, i, name, r, p, q, rho);
       end
       clear A B Sig name
       return
@@ -71,6 +80,10 @@ function [A,B,Sig,varargout] = testcase(varargin)
       if nargout > 4, [varargout{1:3}] = deal(p,q,r); end
       return
     case 'unnamed'
+      if nargin >= 4
+        seed = varargin{4};
+        rand_init('ParkMillerPolar', seed);
+      end
       A = rand_unif(r,r*p)/(2*p*r);
       B = rand_unif(r,r*q)/(2*q*r);
       Sig = hilb(r) + 0.2*eye(r);
@@ -119,20 +132,14 @@ function [A,B,Sig,varargout] = testcase(varargin)
            0.5  2.0 0.5;
            0.0  0.5 1.0];
     case {9,'mediumARMA1'}
-      A = [
-        0.15 0.10 0.05  0.11 0.14 0.17  0.01 0.04 0.06;
-        0.16 0.11 0.06  0.12 0.15 0.18  0.02 0.05 0.08;
-        0.17 0.12 0.07  0.13 0.16 0.19  0.03 0.06 0.09];
-      B = fliplr(A);
+      A = A33; 
+      B = fliplr(A33);
       Sig=[2.0  0.5 0.0;
            0.5  2.0 0.5;
            0.0  0.5 1.0];
     case {10,'mediumARMA2'}
-      B = [
-        0.15 0.10 0.05  0.11 0.14 0.17  0.01 0.04 0.06;
-        0.16 0.11 0.06  0.12 0.15 0.18  0.02 0.05 0.08;
-        0.17 0.12 0.07  0.13 0.16 0.19  0.03 0.06 0.09];
-      A = fliplr(B);
+      A = fliplr(A33);
+      B = A33;
       Sig=[2.0  0.5 0.0;
            0.5  2.0 0.5;
            0.0  0.5 1.0];
@@ -166,7 +173,8 @@ function [A,B,Sig,varargout] = testcase(varargin)
     r = size(Sig,1);
     p = size(A,2)/r;
     q = size(B,2)/r;
-    [varargout{1:3}] = deal(p, q, r);end
+    [varargout{1:3}] = deal(p, q, r);
+  end
   ascertain(isequal(Sig,Sig'));
   ascertain(min(eig(Sig))>0);
 end
@@ -179,6 +187,7 @@ function A = simplerand(m, n, seed)
   %     next = next * 1103515245 + 12345;
   %     irand = (next / 65536) mod 32768;
   %     x = irand / 32768.0;
+  if nargin < 3, seed = 42; end
   A = zeros(m, n);
   next = seed;
   for i = 1:m*n

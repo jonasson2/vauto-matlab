@@ -14,13 +14,13 @@
 function S = vyw_solve(A,PLU,Y)
   A = makecell(A);
   p = length(A);
-  nY = length(Y);  % nY is q+1 for original eqns and p+1 for derivative eqns
   if isstruct(Y), Y = {Y.mat}; end
-  if p==0, S={Y{1}}; return, end  % NOTHING TO DO (PURE MOVING AVERAGE)
+  if isnumeric(Y), Y = makecell(Y); end
   r = size(Y{1},1);
+  nY = length(Y);  % nY is q+1 for original eqns and p+1 for derivative eqns
   nrhs = size(Y{1},3);
+  if p==0, S = {Y{1}}; return, end  % NOTHING TO DO (PURE MOVING AVERAGE)
   g = cell(p-1,nrhs);
-  I = eye(r);
   % INITIALIZE g
   for i=1:p-1
     if i < nY
